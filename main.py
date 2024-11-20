@@ -113,6 +113,7 @@ async def generate_nutrition_plan(user_details: UserDetails):
 uvicorn.run(
         app,
         host="0.0.0.0",
+        port=8080
         # log_level=os.getenv('LOG_LEVEL', "info"),
         # proxy_headers=True
     )
