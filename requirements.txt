@@ -1,0 +1,6 @@
+fastapi
+openai==1.45.0
+python-dotenv
+black
+pylint
+uvicorn
