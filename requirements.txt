@@ -4,3 +4,4 @@ python-dotenv
 black
 pylint
 uvicorn
+prometheus-client==0.14.1

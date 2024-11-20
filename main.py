@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import os
+from starlette.requests import Request
 from constants import *
-
+import prometheus_client
 from openai import OpenAI
 import os
-
+import uvicorn
 
 from dotenv import load_dotenv
 
@@ -23,6 +23,11 @@ client = OpenAI()
 # Initialize FastAPI client
 app = FastAPI()
 
+
+REQUESTS = prometheus_client.Counter(
+    'requests', 'Application Request Count',
+    ['endpoint']
+)
 
 # Create class with pydantic BaseModel
 class TranslationRequest(BaseModel):
@@ -67,6 +72,11 @@ def gen_nutri_plan(gen_nutri_prompt):
 
     return completion.choices[0].message.content
 
+@app.get('/ping')
+def index(request: Request):
+    REQUESTS.labels(endpoint='/ping').inc()
+    return "pong"
+
 @app.post("/translate/")  # This line decorates 'translate' as a POST endpoint
 async def translate(request: TranslationRequest):
     try:
@@ -98,3 +108,11 @@ async def generate_nutrition_plan(user_details: UserDetails):
     except Exception as e:
         # Handle exceptions or errors during translation
         raise HTTPException(status_code=500, detail=str(e))
+
+
+uvicorn.run(
+        app,
+        host="0.0.0.0",
+        # log_level=os.getenv('LOG_LEVEL', "info"),
+        # proxy_headers=True
+    )
