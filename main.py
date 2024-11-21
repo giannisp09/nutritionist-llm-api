@@ -77,6 +77,13 @@ def index(request: Request):
     REQUESTS.labels(endpoint='/ping').inc()
     return "pong"
 
+
+@api.get('/metrics')
+def metrics():
+    return fastapi.responses.PlainTextResponse(
+        prometheus_client.generate_latest()
+    )
+
 @app.post("/translate/")  # This line decorates 'translate' as a POST endpoint
 async def translate(request: TranslationRequest):
     try:
