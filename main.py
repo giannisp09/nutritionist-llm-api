@@ -79,7 +79,7 @@ def index(request: Request):
     return "pong"
 
 
-@api.get('/metrics')
+@app.get('/metrics')
 def metrics():
     return fastapi.responses.PlainTextResponse(
         prometheus_client.generate_latest()
