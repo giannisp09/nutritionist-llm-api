@@ -1,3 +1,4 @@
+import fastapi
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from starlette.requests import Request
