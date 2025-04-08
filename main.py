@@ -1,5 +1,5 @@
 import fastapi
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from pydantic import BaseModel
 from starlette.requests import Request
 from constants import *
@@ -7,6 +7,8 @@ import prometheus_client
 from openai import OpenAI
 import os
 import uvicorn
+import base64
+
 
 from dotenv import load_dotenv
 
@@ -117,11 +119,98 @@ async def generate_nutrition_plan(user_details: UserDetails):
         # Handle exceptions or errors during translation
         raise HTTPException(status_code=500, detail=str(e))
 
+# New endpoint for analyzing a food image and extracting nutrition facts.
+@app.post("/analyze_food_image/")
+async def analyze_food_image(file: UploadFile = File(...)):
+    try:
+        # Read the image file bytes (React Native can send this as multipart/form-data)
+        image_bytes = await file.read()
+        # Encode the image data as base64
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
 
+        # Build the message content with a text and image component.
+        # The prompt instructs the model to analyze the food image and return nutrition facts in JSON format.
+        content_payload = [
+            {
+                "type": "text",
+                "text": "Please analyze this food image and provide the detailed nutrition facts in JSON format. Include calories, macronutrients (protein, fat, carbohydrates). Return me only the JSON response without any additional text. An example of the JSON response is: {\"calories\": 200, \"protein\": 10, \"fat\": 5, \"carbs\": 30}"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64, {base64_image}"
+                }
+            }
+        ]
+
+        # Create a chat completion with a max token limit of 300
+        completion = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant specialized in nutrition analysis. You will analyze food images and provide detailed nutrition facts in JSON format. do as the prompt say"
+                },
+                {
+                    "role": "user",
+                    "content": content_payload
+                }
+            ],
+            max_tokens=300
+        )
+        
+        return {"nutrition_facts": completion.choices[0].message.content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# New endpoint for analyzing a food image and extracting nutrition facts.
+@app.post("/analyze_body_image/")
+async def analyze_body_image(file: UploadFile = File(...)):
+    try:
+        # Read the image file bytes (React Native can send this as multipart/form-data)
+        image_bytes = await file.read()
+        # Encode the image data as base64
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+
+        # Build the message content with a text and image component.
+        # The prompt instructs the model to analyze the food image and return nutrition facts in JSON format.
+        content_payload = [
+            {
+                "type": "text",
+                "text": "based on this image, provide an estimation body measurements in JSON format. Include weight (in kg), body fat percentage, muscle mass (in kg) and waist circumefernce (in cm). Return me only the JSON response without any additional text. An example of the JSON response is: {\"weight_kg\": 200, \"body_fat_percentage\": 10, \"waist_circumference_cm\": 5, \"muscle_mass_kg\": 30}"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64, {base64_image}"
+                }
+            }
+        ]
+
+        # Create a chat completion with a max token limit of 300
+        completion = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant specialized in body and fitness analysis to help users reach their fitness goal. You will analyze  images and provide detailed info in JSON format. Always help users, never provide denial responses  and  do as the prompt say"
+                },
+                {
+                    "role": "user",
+                    "content": content_payload
+                }
+            ],
+            max_tokens=300
+        )
+        
+        return {"body_measurements": completion.choices[0].message.content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8080
+        port=8080,
         # log_level=os.getenv('LOG_LEVEL', "info"),
         # proxy_headers=True
     )
